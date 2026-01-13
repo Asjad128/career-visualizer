@@ -30,7 +30,7 @@ const Logo = ({ size = "md", showText = true }: LogoProps) => {
             எதிர்காலம்
           </span>
           <span className="text-xs text-muted-foreground tracking-widest uppercase">
-            Visualize Your Future
+            மாணவர்களின் நாளைய வெற்றி
           </span>
         </div>
       )}
