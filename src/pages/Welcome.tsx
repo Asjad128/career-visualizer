@@ -67,7 +67,7 @@ const Welcome = () => {
 
         {/* Footer */}
         <footer className="mt-20 text-sm text-muted-foreground animate-fadeIn" style={{ animationDelay: "0.6s" }}>
-          <p>© 2024 CareerViz. Empowering Indian Students to Dream Big.</p>
+          <p>© 2026 vizionary. Empowering Indian Students to Dream Big.</p>
         </footer>
       </main>
     </div>
