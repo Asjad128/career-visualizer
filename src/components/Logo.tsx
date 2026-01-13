@@ -27,7 +27,7 @@ const Logo = ({ size = "md", showText = true }: LogoProps) => {
       {showText && (
         <div className="flex flex-col">
           <span className={`font-display font-bold ${sizes[size].text} neon-text`}>
-            CareerViz
+            எதிர்காலம்
           </span>
           <span className="text-xs text-muted-foreground tracking-widest uppercase">
             Visualize Your Future
