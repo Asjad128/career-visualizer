@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 import ParticleBackground from "@/components/ParticleBackground";
-import { Home, RefreshCw, CheckCircle, TrendingUp, AlertCircle, Lightbulb, MapPin, Quote, Download, Mic, MicOff } from "lucide-react";
+import { Home, RefreshCw, CheckCircle, TrendingUp, AlertCircle, Lightbulb, MapPin, Quote, Download } from "lucide-react";
 import { traitProfiles, getMotivationalQuote } from "@/data/personalityQuestions";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -174,8 +174,6 @@ const PersonalityResults = () => {
   const [results, setResults] = useState<Results | null>(null);
   const [quote, setQuote] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isEditingIntro, setIsEditingIntro] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -212,6 +210,8 @@ const PersonalityResults = () => {
     if (!profileRef.current) return;
     
     setIsDownloading(true);
+    toast.info('Generating PDF...');
+    
     try {
       // Wait for images to load
       const images = profileRef.current.querySelectorAll('img');
@@ -232,16 +232,36 @@ const PersonalityResults = () => {
         allowTaint: true,
         logging: false,
         imageTimeout: 0,
-        onclone: (clonedDoc) => {
-          // Remove any unwanted black backgrounds from cloned images
-          const clonedImages = clonedDoc.querySelectorAll('img');
-          clonedImages.forEach((img) => {
+        onclone: (clonedDoc, element) => {
+          // Fix all images - remove any black backgrounds
+          const allImages = clonedDoc.querySelectorAll('img');
+          allImages.forEach((img) => {
             img.style.backgroundColor = 'transparent';
+            img.style.boxShadow = 'none';
           });
-          // Also fix the image container backgrounds
+          
+          // Fix profession image container
           const imageContainers = clonedDoc.querySelectorAll('.profession-image-container');
           imageContainers.forEach((container) => {
-            (container as HTMLElement).style.backgroundColor = 'transparent';
+            const el = container as HTMLElement;
+            el.style.backgroundColor = 'transparent';
+            el.style.boxShadow = 'none';
+          });
+          
+          // Fix all glass-card backgrounds to ensure proper rendering
+          const glassCards = clonedDoc.querySelectorAll('.glass-card');
+          glassCards.forEach((card) => {
+            const el = card as HTMLElement;
+            // Replace glass effect with solid dark background for PDF
+            el.style.backgroundColor = 'rgba(10, 10, 15, 0.95)';
+            el.style.backdropFilter = 'none';
+          });
+          
+          // Fix neon-border elements
+          const neonBorders = clonedDoc.querySelectorAll('.neon-border');
+          neonBorders.forEach((border) => {
+            const el = border as HTMLElement;
+            el.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
           });
         }
       });
@@ -277,83 +297,6 @@ const PersonalityResults = () => {
     } finally {
       setIsDownloading(false);
     }
-  };
-
-  // Voice recognition handler for re-recording introduction
-  const handleVoiceInput = () => {
-    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      toast.error("Voice input is not supported in your browser");
-      return;
-    }
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-
-    recognition.lang = "en-IN";
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      toast.info("Listening... Speak your name and profession");
-    };
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      const { name, profession } = parseNameAndProfession(transcript);
-      
-      if (name && profession && userData) {
-        const updatedUserData = { ...userData, name, aim: profession };
-        setUserData(updatedUserData);
-        sessionStorage.setItem("personalityUserData", JSON.stringify(updatedUserData));
-        setQuote(getMotivationalQuote(profession));
-        toast.success(`Updated! Hello ${name}, aspiring ${profession}`);
-        setIsEditingIntro(false);
-      } else {
-        toast.warning("Please speak both your name and profession clearly.");
-      }
-    };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-      toast.error("Could not recognize speech. Please try again.");
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.start();
-  };
-
-  // Parse name and profession from transcript
-  const parseNameAndProfession = (transcript: string): { name: string; profession: string } => {
-    const patterns = [
-      /my name is (.+?) and (?:i am|i'm|i want to (?:be|become)) (?:a |an )?(.+)/i,
-      /(?:i am|i'm) (.+?) and (?:i am|i'm|i want to (?:be|become)) (?:a |an )?(.+)/i,
-      /(.+?) (?:and )?(?:i am|i'm|i want to (?:be|become)) (?:a |an )?(.+)/i,
-    ];
-
-    for (const pattern of patterns) {
-      const match = transcript.match(pattern);
-      if (match && match[1] && match[2]) {
-        return {
-          name: match[1].trim(),
-          profession: match[2].trim().replace(/\.$/, ""),
-        };
-      }
-    }
-
-    const words = transcript.split(/\s+/);
-    if (words.length >= 2) {
-      const midPoint = Math.ceil(words.length / 2);
-      return {
-        name: words.slice(0, midPoint).join(" "),
-        profession: words.slice(midPoint).join(" "),
-      };
-    }
-
-    return { name: "", profession: "" };
   };
 
   return (
@@ -401,35 +344,13 @@ const PersonalityResults = () => {
                 <div className={`absolute inset-0 bg-gradient-to-t ${avatar.color} opacity-20 pointer-events-none`} />
               </div>
               
-              {/* Summary Sentence with Voice Re-record Option */}
+              {/* Summary Sentence */}
               <div className="flex flex-col items-center gap-4">
-                <h1 className="text-2xl lg:text-3xl font-display font-bold">
-                  I am <span className="neon-text">{userData.name}</span> and I want to become a{" "}
+                <h1 className="text-2xl lg:text-3xl font-display font-bold text-center">
+                  I am <span className="neon-text">{userData.name}</span>, I am{" "}
+                  <span className="neon-text">{userData.age}</span> years old, and I want to become a{" "}
                   <span className="neon-text-green">{userData.aim}</span>
                 </h1>
-                
-                {/* Voice Re-record Button */}
-                <button
-                  onClick={handleVoiceInput}
-                  disabled={isListening}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all ${
-                    isListening 
-                      ? 'bg-destructive/20 text-destructive border border-destructive/50 animate-pulse' 
-                      : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20'
-                  }`}
-                >
-                  {isListening ? (
-                    <>
-                      <MicOff size={16} className="animate-pulse" />
-                      Listening...
-                    </>
-                  ) : (
-                    <>
-                      <Mic size={16} />
-                      Re-record with Voice
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           </div>
