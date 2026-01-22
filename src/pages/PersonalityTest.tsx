@@ -89,7 +89,7 @@ const PersonalityTest = () => {
     };
     
     sessionStorage.setItem("personalityResults", JSON.stringify(results));
-    navigate("/personality-results");
+    navigate("/personality-intro");
   };
 
   const progress = ((currentQuestion + 1) / questions.length) * 100;

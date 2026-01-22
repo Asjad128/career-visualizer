@@ -12,6 +12,7 @@ import PersonalityAssessment from "./pages/PersonalityAssessment";
 import PersonalityOnboarding from "./pages/PersonalityOnboarding";
 import PersonalityAvatar from "./pages/PersonalityAvatar";
 import PersonalityTest from "./pages/PersonalityTest";
+import PersonalityIntro from "./pages/PersonalityIntro";
 import PersonalityResults from "./pages/PersonalityResults";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/personality-onboarding" element={<PersonalityOnboarding />} />
           <Route path="/personality-avatar" element={<PersonalityAvatar />} />
           <Route path="/personality-test" element={<PersonalityTest />} />
+          <Route path="/personality-intro" element={<PersonalityIntro />} />
           <Route path="/personality-results" element={<PersonalityResults />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

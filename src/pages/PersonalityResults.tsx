@@ -7,6 +7,7 @@ import { Home, RefreshCw, CheckCircle, TrendingUp, AlertCircle, Lightbulb, MapPi
 import { traitProfiles, getMotivationalQuote } from "@/data/personalityQuestions";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { toast } from "sonner";
 
 interface UserData {
   name: string;
@@ -209,15 +210,63 @@ const PersonalityResults = () => {
     if (!profileRef.current) return;
     
     setIsDownloading(true);
+    toast.info('Generating PDF...');
+    
     try {
+      // Wait for images to load
+      const images = profileRef.current.querySelectorAll('img');
+      await Promise.all(
+        Array.from(images).map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
+
       const canvas = await html2canvas(profileRef.current, {
         scale: 2,
         backgroundColor: '#0a0a0f',
         useCORS: true,
         allowTaint: true,
+        logging: false,
+        imageTimeout: 0,
+        onclone: (clonedDoc, element) => {
+          // Fix all images - remove any black backgrounds
+          const allImages = clonedDoc.querySelectorAll('img');
+          allImages.forEach((img) => {
+            img.style.backgroundColor = 'transparent';
+            img.style.boxShadow = 'none';
+          });
+          
+          // Fix profession image container
+          const imageContainers = clonedDoc.querySelectorAll('.profession-image-container');
+          imageContainers.forEach((container) => {
+            const el = container as HTMLElement;
+            el.style.backgroundColor = 'transparent';
+            el.style.boxShadow = 'none';
+          });
+          
+          // Fix all glass-card backgrounds to ensure proper rendering
+          const glassCards = clonedDoc.querySelectorAll('.glass-card');
+          glassCards.forEach((card) => {
+            const el = card as HTMLElement;
+            // Replace glass effect with solid dark background for PDF
+            el.style.backgroundColor = 'rgba(10, 10, 15, 0.95)';
+            el.style.backdropFilter = 'none';
+          });
+          
+          // Fix neon-border elements
+          const neonBorders = clonedDoc.querySelectorAll('.neon-border');
+          neonBorders.forEach((border) => {
+            const el = border as HTMLElement;
+            el.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
+          });
+        }
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -241,8 +290,10 @@ const PersonalityResults = () => {
       }
       
       pdf.save(`${userData.name.replace(/\s+/g, '_')}_Career_Profile.pdf`);
+      toast.success('Profile downloaded successfully!');
     } catch (error) {
       console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF. Please try again.');
     } finally {
       setIsDownloading(false);
     }
@@ -277,25 +328,30 @@ const PersonalityResults = () => {
           {/* Summary Header with Profession Image */}
           <div className="glass-card p-8 text-center mb-8">
             <div className="flex flex-col items-center gap-6">
-              {/* Profession Image */}
-              <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden neon-border">
+              {/* Profession Image - with transparent bg for PDF */}
+              <div className="profession-image-container relative w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden neon-border" style={{ backgroundColor: 'transparent' }}>
                 <img 
                   src={professionImage} 
                   alt={`${userData.aim} profession`}
                   className="w-full h-full object-cover"
+                  crossOrigin="anonymous"
+                  style={{ backgroundColor: 'transparent' }}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = '/placeholder.svg';
                   }}
                 />
-                <div className={`absolute inset-0 bg-gradient-to-t ${avatar.color} opacity-20`} />
+                <div className={`absolute inset-0 bg-gradient-to-t ${avatar.color} opacity-20 pointer-events-none`} />
               </div>
               
               {/* Summary Sentence */}
-              <h1 className="text-2xl lg:text-3xl font-display font-bold">
-                I am <span className="neon-text">{userData.name}</span> and I want to become a{" "}
-                <span className="neon-text-green">{userData.aim}</span>
-              </h1>
+              <div className="flex flex-col items-center gap-4">
+                <h1 className="text-2xl lg:text-3xl font-display font-bold text-center">
+                  I am <span className="neon-text">{userData.name}</span>, I am{" "}
+                  <span className="neon-text">{userData.age}</span> years old, and I want to become a{" "}
+                  <span className="neon-text-green">{userData.aim}</span>
+                </h1>
+              </div>
             </div>
           </div>
 
