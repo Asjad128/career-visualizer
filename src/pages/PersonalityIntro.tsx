@@ -33,7 +33,7 @@ const PersonalityIntro = () => {
     if (!userData || hasSpoken.current) return;
     hasSpoken.current = true;
 
-    const sentence = `I am ${userData.name}, I am ${userData.age} years old, and I want to become a ${userData.aim}.`;
+    const sentence = `I am ${userData.name}, and I want to become a ${userData.aim}.`;
     setDisplayText(sentence);
 
     // Use Web Speech API for TTS
